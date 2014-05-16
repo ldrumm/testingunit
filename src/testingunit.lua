@@ -1,3 +1,4 @@
+#!/usr/bin/env lua
 
 TestingUnit = setmetatable({},
 {
@@ -70,7 +71,7 @@ TestingUnit = setmetatable({},
             assert_in = function(self, haystack, needle)
                 if type(haystack) ~= 'string' and type(haystack) ~= 'table' then
                     self.failures[#self.failures + 1] = {
-                        err=string.format("type('%s') is not a haystack type",  haystack), 
+                        err=string.format("type('%s') is not a container type",  haystack), 
                         info=debug.getinfo(2),
                         args={needle=needle, haystack=haystack}
                     }
@@ -180,7 +181,7 @@ function enumerate_files(dirs)
     local all_files = {}
     for _, dir in pairs(dirs) do
         for _, v in pairs(scandir(dir)) do
-            print(v)
+--            print(v)
             all_files[#all_files + 1] = v
         end
     end
@@ -191,7 +192,7 @@ function load_test_files(dirs)
     local tests = {}
     for _, file in ipairs(enumerate_files(dirs)) do
         if string.match(file, '^test.*.lua$') then
-            print("loading", file)
+            print("loading", file .. "...")
             local func, err = loadfile(file)
             tests[#tests + 1] = func
             --load the test into the global environment. warn on failure
@@ -201,8 +202,6 @@ function load_test_files(dirs)
 end
 
 function runtests()
-    
-    
     local tests = {}
     local tests_run = 0
     local tests_failed = 0
@@ -211,7 +210,7 @@ function runtests()
     local start_time = 0
     local stop_time = 0
     --discover all lua test scripts in the current directory and protected load them
-    load_test_files()
+    
     
     --[[iterate the global registry for tables with key ``is_testing_unit == true `` 
     and add that table to the list of unit test tables.
@@ -256,7 +255,7 @@ function runtests()
         for _, f in ipairs(t.failures) do
             tests_failed = tests_failed + 1
             print("================================")
-            print("failure:")
+            print("FAILURE:")
             for k, v in pairs(f) do
                 print(k, v)
             end
@@ -273,6 +272,7 @@ function runtests()
     for _, v in pairs(tests) do
         _print_results(v)
     end
+    
     print(string.format([[Ran %s tests in %s seconds.
         %s failures, %s expected failures, %s errors]],
         tests_run, 
@@ -284,5 +284,8 @@ end
 
 
 
-
-runtests()
+--function main()
+--    local dirs = parse_args()['dirs']
+--    for k, v in pairs(args) do print (k, v) end
+    load_test_files({'.'})
+    runtests()
