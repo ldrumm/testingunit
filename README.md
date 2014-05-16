@@ -41,13 +41,13 @@ Quick Start
             --[[all callable members whose name begins with `test` are 
                 autodiscovered by the test runner.
             ]]
-                self:assert_equal(1, 2)
+                self:assert_equal(1, 2) --(fails)
         end,
         
         test_in = function(self)
             --TestingUnit supports testing container membership
             self:assert_in('hello', 'world')            --(fails)
-            self:assert_in({1,2, hello='world', 9})   --(passes)
+            self:assert_in({1,2, hello='world', 9})     --(passes)
         end,
         
         test_a_calls_b = function(self)
@@ -60,8 +60,8 @@ Quick Start
             local function b() print("Hello from b()") end
             local function c() print(a()) end
             
-            self:assert_calls(c, a) --(passes)
-            self:assert_calls(a, b, {7}) --(fails)
+            self:assert_calls(c, a)         --(passes)
+            self:assert_calls(a, b, {7})    --(fails)
         end,
         
         test_fixtures_equals = function(self, x, y)
@@ -72,13 +72,17 @@ Quick Start
         end,
         
         test_fixtures_raises = function(self, w, x, y, z)
-            --table concat does not call non atomic types. This test assumes that
-            --behaviour will not change
-            --our test fixtures have one non-atomic type each call
+            --[[table concat does not convert non atomic types. This test assumes 
+            that behaviour will not change.
+            Our test fixtures have one non-atomic argument per fixture.
+            
             self:assert_raises(function() return table.concat({w,x,y,z}, '|')end)
         
         end,
         
+        
+        --functions with variations of ``expected failure`` in their name 
+        --will be treated as expected failures by the test runner
         test_fixtures_nan_equal_expected_failure = function(self, x)
             --[[(0/0) is guaranteed by ieee754 to never compare as equal to any value.
             Whatever the value of our fixture, this test will expected-fail 
@@ -87,6 +91,7 @@ Quick Start
             self:assert_equal(a, 0/0) 
         end,
 ```
+
 Save that file as `tests.lua` and run the `testingunit` script from the same directory.  All the tests will be automatically discovered, loaded and run, and you will get output like the following:
 
     loading	tests.lua...
@@ -122,4 +127,3 @@ Save that file as `tests.lua` and run the `testingunit` script from the same dir
             4 failures, 1000000 expected failures, 1 errors, 5 passed
 
 
-Fixtures and expected failures will be implemented soon.
