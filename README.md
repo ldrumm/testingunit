@@ -8,22 +8,46 @@ TestingUnit is a very simple but fairly featureful and useful unit test runner f
 Quick Start
 ===========
 ```lua
-    mytest = TestingUnit{
+       mytest = TestingUnit{
         --[[ The testing unit base is overridden with your test method.
-            All test methods are functions accepting ``self`` as the first argument.
+            All test methods are functions accepting ``self`` by convention.
         ]]
+        
+        --[[The fixtures table is queried for tables matching the test method name.
+        
+        ]]
+        fixtures = {
+            test_fixtures_equals={{1, 2}, {22, 22}, {'hello', 'hello'}},
+            test_fixtures_raises={{1,2,3,function()end}, {'a', 'b', 'c', {}}, {{},{},{},{}}},
+            test_fixtures_nan_equal_expected_failure=(function()
+                --generate our fixtures dynamically
+                local t = {} 
+                for i= 1, 1000000 do 
+                    t[i] = {math.random()}
+                end 
+                return t 
+            end)(),
+        },
+        
+        setup = function(self, test_func, args)
+            -- do your setup here.  Called before every test if defined.   
+        end,
+        
+        teardown = function(self, test_func, args)
+            --cleanup in aisle 2.  Called after every test if defined.
+        end,
         
         test_equals = function(self)
             --[[all callable members whose name begins with `test` are 
                 autodiscovered by the test runner.
             ]]
-            self:assert_equal(1, 2)
+                self:assert_equal(1, 2)
         end,
         
         test_in = function(self)
             --TestingUnit supports testing container membership
             self:assert_in('hello', 'world')            --(fails)
-            self:assert_in(9, {1,2, hello='world', 9})   --(passes)
+            self:assert_in({1,2, hello='world', 9})   --(passes)
         end,
         
         test_a_calls_b = function(self)
@@ -37,44 +61,65 @@ Quick Start
             local function c() print(a()) end
             
             self:assert_calls(c, a) --(passes)
-            self:assert_calls(a, b) --(fails)
+            self:assert_calls(a, b, {7}) --(fails)
         end,
-        test_stupidity_gets_handled = function(self)
-            --Do something stupid to demonstrate that errors in your tests are also caught and notified
-            return 2 / 'hello'
+        
+        test_fixtures_equals = function(self, x, y)
+            --[[ Tests with valid fixture data will be called 
+            once per fixture with those values as arguments.
+            ]]
+            self:assert_equal(x, y)
         end,
-   }
+        
+        test_fixtures_raises = function(self, w, x, y, z)
+            --table concat does not call non atomic types. This test assumes that
+            --behaviour will not change
+            --our test fixtures have one non-atomic type each call
+            self:assert_raises(function() return table.concat({w,x,y,z}, '|')end)
+        
+        end,
+        
+        test_fixtures_nan_equal_expected_failure = function(self, x)
+            --[[(0/0) is guaranteed by ieee754 to never compare as equal to any value.
+            Whatever the value of our fixture, this test will expected-fail 
+            when the machine is ieee754
+            ]]
+            self:assert_equal(a, 0/0) 
+        end,
 ```
 Save that file as `tests.lua` and run the `testingunit` script from the same directory.  All the tests will be automatically discovered, loaded and run, and you will get output like the following:
 
     loading	tests.lua...
+    loading	tests_readme.lua...
     hello from a()
     ================================
     FAILURE:
+    info	table: 0x4714ccb8
+    err	assert_calls failure:'[tests_readme.lua]:50' not called by '[tests_readme.lua]:49 with args(7)'
+    --------------------------------
+    ================================
+    FAILURE:
+    info	table: 0x4714d308
+    err	'nil' not found in 'table: 0x4714d1b8'
+    --------------------------------
+    ================================
+    FAILURE:
+    args	table: 0x408db270
     err	assert_equal failed: 1 ~= 2
-    args	table: 0x15af8f0
     --------------------------------
     ================================
     FAILURE:
-    err	assert_calls failure:'[tests.lua]:26' not called by '[tests.lua]:25 with args()'
-    info	table: 0x15b3330
-    --------------------------------
-    ================================
-    FAILURE:
-    err	'world' not found in 'hello'
-    info	table: 0x15b3440
-    --------------------------------
-    ================================
-    FAILURE:
-    err	type('9') is not a container type
-    info	table: 0x15b3f80
-    args	table: 0x15b3fd0
+    args	table: 0x4714d950
+    err	assert_equal failed: 1 ~= 2
     --------------------------------
     ================================
     ERROR:execution failure
-    tests.lua:34: attempt to perform arithmetic on a string value
+    args	table: 0x4714d538
+    name	test_stupidity_gets_handled
+    err	tests_readme.lua:83: attempt to perform arithmetic on a string value
     --------------------------------
-    Ran 4 tests in 0 seconds.
-            4 failures, 0 expected failures, 1 errors
+    Ran 1000010 tests in 4 seconds.
+            4 failures, 1000000 expected failures, 1 errors, 5 passed
+
 
 Fixtures and expected failures will be implemented soon.

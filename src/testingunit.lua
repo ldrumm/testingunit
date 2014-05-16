@@ -41,6 +41,7 @@ TestingUnit = setmetatable({},
                     }
                 end
             end,
+            
             assert_truthy = function(self, x)
                 if not x then
                     self:_assertion_failure{
@@ -50,6 +51,7 @@ TestingUnit = setmetatable({},
                     }
                 end
             end, 
+            
             assert_true = function(self, x)
                 if x ~= true then
                     self:_assertion_failure{
@@ -59,6 +61,7 @@ TestingUnit = setmetatable({},
                     }
                 end
             end,
+            
             assert_false = function(self, x)
                 if x ~= false then
                     self:_assertion_failure{
@@ -68,6 +71,7 @@ TestingUnit = setmetatable({},
                     }
                 end
             end,
+            
             assert_match = function(self, s, exp)
                 if not string.match(s, exp) then
                     self:_assertion_failure{
@@ -77,6 +81,7 @@ TestingUnit = setmetatable({},
                     }
                 end
             end,
+            
             assert_in = function(self, haystack, needle)
                 if type(haystack) ~= 'string' and type(haystack) ~= 'table' then
                     self:_assertion_failure{
@@ -118,6 +123,7 @@ TestingUnit = setmetatable({},
                     end
                 end
             end,
+            
             assert_nil = function(self, x)
                 if x ~= nil then
                     self:_assertion_failure{
@@ -126,6 +132,7 @@ TestingUnit = setmetatable({},
                     }
                 end
             end,
+            
             assert_calls = function(self, caller, callee, args)
                 if (type(caller) ~= 'function' or type(callee) ~= 'function') then 
                     error('callable arguments required for assert_calls()', 2) 
@@ -167,6 +174,7 @@ TestingUnit = setmetatable({},
                 end
             end
         }
+        --inherit called values before return.
         if ... ~= nil then
             for k, v in pairs(...) do 
                 test_table[k] = v
@@ -192,7 +200,6 @@ function enumerate_files(dirs)
     local all_files = {}
     for _, dir in pairs(dirs) do
         for _, v in pairs(scandir(dir)) do
---            print(v)
             all_files[#all_files + 1] = v
         end
     end
@@ -202,6 +209,7 @@ end
 
 function load_test_files(dirs)
     --discover all lua test scripts in the given directories and protected load them
+    --TODO turn this into an iterator, so that variable name clashes don't matter.
     local tests = {}
     for _, file in ipairs(enumerate_files(dirs)) do
         if string.match(file, '^test.*.lua$') then
@@ -231,7 +239,9 @@ function runtests()
     local failures = {}
     local errors = {}    
     local expected_failures = {}
-    --[[iterate the global registry for tables with key ``is_testing_unit == true `` 
+    
+    --[[
+    Iterate the global registry for tables with key ``is_testing_unit == true `` 
     and add that table to the list of unit test tables.
     ]]
     for k, v in pairs(_G) do
@@ -241,29 +251,24 @@ function runtests()
             end
         end
     end
-    
 
     local function _run_test_unit(t)
-        --[[ Search each identified unit test table for member functions named ``test*``
+        --[[ Search each identified table ``t`` for member functions named ``test*``
         and execute each one within pcall, identifying and counting failures, 
         expected failures, and execution errors.
         ]]
         local is_expected_failure
         local last_assertion
         
-        --We inject the following function into the test table so we can reference ``assertion_triggered``
+        --[[We inject the following function into the test table so we can reference 
+        ``assertion_triggered`` as a nonlocal variable
+        ]]
         local function _assertion_failure(self, ...)
             last_assertion = {...}
---            if self._is_expected_failure then
---                self.expected_failures[#self.expected_failures + 1] = {...}
---                return
---            end
---            self.failures[#self.failures + 1] = {...}
         end
-        
         t._assertion_failure = _assertion_failure
         
-        --iterate all callables and call with any supplied fixtures
+        --iterate all callables and iterate/call with any supplied fixtures
         for k, v in pairs(t) do
             if type(v) == 'function' or (type(v) == 'table' and getmetatable(v) ~= nil and type(getmetatable(v)['__call']) == 'function') then
                 local func_name, callable = k, v
@@ -285,27 +290,28 @@ function runtests()
                         last_assertion = nil
                         if string.match(string.lower(func_name), '^test[%a%d_]*expected[%a%d_]*fail') then
                             --[[The expected failure handling is a hack relying on 
-                            the table member variable ``_is_expected_failure`` as semi-global state,
-                            but it significantly simplifies the assert_*  family of functions.
+                            the nonlocal variable ``last_assertion`` as semi-global state,
+                            but it significantly simplifies the assert_*  family of functions
+                            and that's a good thing.
                             ]]
-                        is_expected_failure = true
+                            is_expected_failure = true
                         end
                         
                         
                         --execute the test with data
-                        if t.setup then t:setup() end
+                        if t.setup then t:setup(callable, fixture) end
                             local success, ret
                             if #fixture > 0 then
                                 success, ret = pcall(callable, t, unpack(fixture))
                             else
                                 success, ret = pcall(callable, t)
                             end
+                            n_tests_run = n_tests_run + 1
                             if not success then 
                                 errors[#errors +1] = {name=func_name, err=ret, args=fixture}
                                 break
                             end
-                            n_tests_run = n_tests_run + 1
-                        if t.teardown then t:teardown() end
+                        if t.teardown then t:teardown(callable, fixture) end
                         
                         if is_expected_failure then
                             if not last_assertion then
@@ -317,7 +323,7 @@ function runtests()
                                 }
                             else
                                 n_tests_expected_failed = n_tests_expected_failed +1
-                                n_tests_passed = n_tests_passed +1
+--                                n_tests_passed = n_tests_passed +1
                             end
                         else
                             if last_assertion then
@@ -353,7 +359,9 @@ function runtests()
             n_test_errors = n_test_errors + 1
             print("================================")
             print("ERROR:execution failure")
-            print(e)
+            for k, v in pairs(e) do
+                print(k, v)
+            end
             print("--------------------------------")
         end
     end
@@ -370,6 +378,7 @@ function runtests()
         n_test_errors,
         n_tests_passed)
     )
+    return n_tests_failed
 end
 
 
@@ -377,5 +386,5 @@ end
 --function main()
 --    local dirs = parse_args()['dirs']
 --    for k, v in pairs(args) do print (k, v) end
-    load_test_files({'.'})
-    runtests()
+load_test_files({'.'})
+return runtests()
