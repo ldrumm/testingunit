@@ -7,7 +7,7 @@ TestingUnit is a very simple but fairly featureful and useful unit test runner f
 
 Quick Start
 ===========
-
+```lua
     mytest = TestingUnit{
         --[[ The testing unit base is overridden with your test method.
             All test methods are functions accepting ``self`` as the first argument.
@@ -44,7 +44,7 @@ Quick Start
             return 2 / 'hello'
         end,
    }
-
+```
 Save that file as `tests.lua` and run the `testingunit` script from the same directory.  All the tests will be automatically discovered, loaded and run, and you will get output like the following:
 
     loading	tests.lua...
