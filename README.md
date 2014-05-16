@@ -76,7 +76,7 @@ Quick Start
         --[[table concat does not convert non atomic types. This test assumes 
         that behaviour will not change.
         Our test fixtures have one non-atomic argument per fixture.
-        
+        --]]
         self:assert_raises(function() return table.concat({w,x,y,z}, '|')end)
     
     end,
