@@ -18,7 +18,7 @@ Quick Start
     ]]
     fixtures = {
         test_fixtures_equals={{1, 2}, {22, 22}, {'hello', 'hello'}},
-        test_fixtures_raises={{1,2,3,function()end}, {'a', 'b', 'c', {}}, {{},{},{},{}}},
+        test_fixtures_raises={{1, 2, 3,function()end}, {'a', 'b', 'c', {}}, {{},{},{},{}}},
         test_fixtures_nan_equal_expected_failure=(function()
             --generate our fixtures dynamically
             local t = {} 
@@ -47,7 +47,7 @@ Quick Start
     test_in = function(self)
         --TestingUnit supports testing container membership
         self:assert_in('hello', 'world')            --(fails)
-        self:assert_in({1,2, hello='world', 9})     --(passes)
+        self:assert_in({1, 2, hello='world', 9})     --(passes)
     end,
     
     test_a_calls_b = function(self)
@@ -77,7 +77,7 @@ Quick Start
         that behaviour will not change.
         Our test fixtures have one non-atomic argument per fixture.
         --]]
-        self:assert_raises(function() return table.concat({w,x,y,z}, '|')end)
+        self:assert_raises(function() return table.concat({w, x, y, z}, '|')end)
     
     end,
     
