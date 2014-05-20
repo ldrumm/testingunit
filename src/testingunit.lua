@@ -134,8 +134,8 @@ TestingUnit = setmetatable({},
             end,
             
             assert_calls = function(self, caller, callee, args)
-                if (type(caller) ~= 'function' or type(callee) ~= 'function') then 
-                    error('callable arguments required for assert_calls()', 2) 
+                if (type(caller) ~= 'function') or (type(callee) ~= 'function') then 
+                    error(string.format('callable arguments required for assert_calls().  Got %s, %s, %s', caller, callee, args), 2) 
                 end
                 local was_called = false
                 local function trace_hook()
@@ -187,13 +187,25 @@ TestingUnit = setmetatable({},
     end
 })
 
-function enumerate_files(dirs)
-    local dirs = dirs or {}
+function enumerate_files(dirs, depth, pattern)
+--    generator function to enumerate all files within a given directory
+    local dirs = dirs or {'.'}
+    local depth = tonumber(depth) or 2
+    local pattern = pattern or nil
+    if pattern then
+        pattern = string.format('-iname %q', pattern)
+    else 
+        pattern = ""
+    end
     local function scandir(directory)
-        --http://stackoverflow.com/a/11130774
         local t = {}
-        for filename in io.popen('ls -a "'..directory..'"'):lines() do
-            t[#t + 1] = filename
+        --This quoting is not security safe, but should prevent accidents
+        for filename in io.popen(string.format("find %s -maxdepth %s  %s -type f", 
+            string.format("%q", directory), 
+            depth, 
+            pattern)):lines() do
+            
+t[#t + 1] = filename
         end
         return t
     end
@@ -203,32 +215,48 @@ function enumerate_files(dirs)
             all_files[#all_files + 1] = v
         end
     end
-    return all_files
+    local index = 0
+    local function file_iter()
+        index = index + 1
+        return all_files[index]
+    end
+    return file_iter
 end
 
 
-function load_test_files(dirs)
-    --discover all lua test scripts in the given directories and protected load them
-    --TODO turn this into an iterator, so that variable name clashes don't matter.
+function find_test_files(dirs, depth, pattern)
+    --[[discover all lua test scripts in the given directories and put their 
+    filenames in the returned array
+    ]]
     local tests = {}
-    for _, file in ipairs(enumerate_files(dirs)) do
-        if string.match(file, '^test.*.lua$') then
-            print("loading", file .. "...")
-            local func, err = loadfile(file)
-            tests[#tests + 1] = func
-            --load the test into the global environment. warn on failure
-            if not pcall(func) then print(string.format("ERROR:failed to load '%s'", file)) end
+    local function basename(path)
+        local index = string.find(path:reverse(), '/', 1, true)
+        if not index then return path end
+        return string.sub(path, #path-index+2)
+    end
+    
+    for file in enumerate_files(dirs, depth, pattern) do
+        if string.match(basename(file), '^test.*.lua$') then
+--            print("loading", file .. "...")
+            tests[#tests + 1] = file
         end
     end
+    return tests
 end
 
-function get_fixtures_for_member_name(t, member_name)
-    if not t.fixtures[member_name] then return {{}} end
-    return t.fixtures[member_name]
-end
 
-function runtests()
-    local all_test_units = {}
+
+function runtests(all_test_files)
+    --[[
+        Given a table containing paths of testing scripts, load each one in turn
+        and execute any TestingUnits instantiated into the global table by the script. 
+        The global namespace is reset between each file load, so there are no 
+        side-effects from other test files, it is not reset per suite in the case that
+        multiple test suites exist in a single file.  
+        This shouldn't present a problem in most cases.
+    ]]
+
+    local old_globals = {}  --we store a clean copy of _G for restoring a clean slate.
     local n_tests_run = 0
     local n_tests_failed = 0
     local n_tests_passed = 0
@@ -240,19 +268,71 @@ function runtests()
     local errors = {}    
     local expected_failures = {}
     
-    --[[
-    Iterate the global registry for tables with key ``is_testing_unit == true `` 
-    and add that table to the list of unit test tables.
-    ]]
-    for k, v in pairs(_G) do
-        if type(v) == 'table' then
-            if v['is_testing_unit'] == true then
-                all_test_units[#all_test_units +1] = v
+    local function save_globals()
+        --store the contents of the global table locally
+        for k, v in pairs(_G) do
+            old_globals[k] = v
+        end
+    end
+    
+    local function reset_globals()
+        --set the global table back to the saved upvalue
+        local pairs = pairs
+        for k, v in pairs(_G) do
+            if not old_globals[k] then
+                _G[k] = nil
             end
         end
     end
+    
+    local function load_each_test_file_iter(files_list)
+        --[[
+        Given a list of files, load the test into the global environment and 
+        return all discovered test tables. 
+        warns on failure to load, but skips to the next test.
+        ]]
+        local index = 0
+        local file_iter = ipairs(files_list)
+        local function iter()
+            local _, file = file_iter(files_list, index)
+            
+            index = index + 1
+            if file == nil then return nil end
+            local func, err = loadfile(file)
+            if func then
+                if not pcall(func)  then
+                    print(string.format("ERROR:failed to exec '%s'", file))
+                    return {}
+                else
+                    local all_test_units = {}
+                    --[[
+                    Iterate the global registry for tables with 
+                    key ``is_testing_unit == true ``.
+                    Add that table to the list of unit test tables.
+                    ]]
+                    for k, v in pairs(_G) do
+                        if type(v) == 'table' then
+                            if v['is_testing_unit'] == true then
+                                all_test_units[#all_test_units +1] = v
+                            end
+                        end
+                    end
+                    return all_test_units
+                end
+            else
+                print(string.format("ERROR:failed to load '%s'", file))
+                return {}
+            end
+        end
+        return iter
+    end
 
-    local function _run_test_unit(t)
+    function get_fixtures_for_member_name(t, member_name)
+        if not t.fixtures[member_name] then return {{}} end
+        return t.fixtures[member_name]
+    end
+
+    local function run_test_unit(t)
         --[[ Search each identified table ``t`` for member functions named ``test*``
         and execute each one within pcall, identifying and counting failures, 
         expected failures, and execution errors.
@@ -261,7 +341,7 @@ function runtests()
         local last_assertion
         
         --[[We inject the following function into the test table so we can reference 
-        ``assertion_triggered`` as a nonlocal variable
+        ``last_assertion`` as a nonlocal variable, and the test table can call self:_assertion_failure()
         ]]
         local function _assertion_failure(self, ...)
             last_assertion = {...}
@@ -338,15 +418,21 @@ function runtests()
             end
         end
     end
-    
+
     --actually run all the tests
+    save_globals()
     start_time = os.time()
-        for _, v in pairs(all_test_units) do
-            _run_test_unit(v)
+        for t in load_each_test_file_iter(all_test_files) do
+            if t then
+                for _, v in ipairs(t) do
+                    run_test_unit(v)
+                end
+            end
+            reset_globals()
         end
     stop_time = os.time()
     
-    local function _print_results(t)
+    local function _print_results()
         for _, f in ipairs(failures) do
             print("================================")
             print("FAILURE:")
@@ -365,10 +451,7 @@ function runtests()
             print("--------------------------------")
         end
     end
-    for _, v in pairs(all_test_units) do
-        _print_results(v)
-    end
-    
+    _print_results()
     print(string.format([[Ran %s tests in %s seconds.
         %s failures, %s expected failures, %s errors, %s passed]],
         n_tests_run, 
@@ -383,8 +466,5 @@ end
 
 
 
---function main()
---    local dirs = parse_args()['dirs']
---    for k, v in pairs(args) do print (k, v) end
-load_test_files({'.'})
-return runtests()
+
+return runtests(find_test_files({'../tests', }, 1, "*.lua"))
