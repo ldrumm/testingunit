@@ -7,7 +7,7 @@
         
         ]]
         fixtures = {
-            test_fixtures_equals={{1, 2}, {22, 22}, {'hello', 'hello'}},
+            test_fixtures_equals={{4, 5}, {22, 22}, {'hello', 'hello'}},
             test_fixtures_raises={{1,2,3,function()end}, {'a', 'b', 'c', {}}, {{},{},{},{}}},
             test_fixtures_nan_equal_expected_failure=(function()
                 --generate our fixtures dynamically
@@ -31,18 +31,20 @@
             --[[all callable members whose name begins with `test` are 
                 autodiscovered by the test runner.
             ]]
-                self:assert_equal(1, 2)
+                self:assert_equal(1, 2) --(fails)
         end,
         
         test_in = function(self)
             --TestingUnit supports testing container membership
-            self:assert_in('hello', 'world')            --(fails)
-            self:assert_in({1,2, hello='world', 9})   --(passes)
+            self:assert_in('hello', 'world')                    --(fails)
+            self:assert_in({1,2, hello='world', 9}, 'world')   --(passes)
         end,
         
         test_a_calls_b = function(self)
-            --[[TestingUnit has inbuilt support for checking that certain functions call others. 
-            Allowing you to test your assumptions about lower abstraction levels/confirm certain conditions.
+            --[[TestingUnit has inbuilt support for checking that certain 
+            functions call others. 
+            Allowing you to reason about lower abstraction levels/confirm 
+            certain conditions have expected effects
             ]]
             
             --first define some functions we want to check call other
