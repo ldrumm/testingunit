@@ -23,11 +23,11 @@ TestingUnit = setmetatable({},
                 --we don't want success as this is assert_raises()
                 if success then
                     self:_assertion_failure{
-                        err=result, 
+                        err_str=result, 
                         func=func, 
                         args=args,
-                        tb=debug.traceback(), 
-                        info=debug.getinfo(2)
+                        traceback=debug.traceback(2), 
+                        debug_info=debug.getinfo(2)
                     }
                 end
             end,
@@ -35,9 +35,9 @@ TestingUnit = setmetatable({},
             assert_equal = function(self, a, b)
                 if a ~= b then
                     self:_assertion_failure{
-                        err=string.format("assert_equal failed: %s ~= %s", a , b), 
-                        info=debug.getinfo(2),
-                        func=func, 
+                        traceback=debug.traceback(2),
+                        err_str=string.format("assert_equal failed: %s ~= %s", a , b), 
+                        debug_info=debug.getinfo(2),
                         args={a, b}
                     }
                 end
@@ -47,10 +47,11 @@ TestingUnit = setmetatable({},
                 local epsilon = epsilon or 0.000001
                 if (math.abs(a) - math.abs(b))  > epsilon then
                         self:_assertion_failure{
-                        err=string.format("assert_almost equal failed: %s ~= %s +/-%s", a , b, epsilon), 
-                        info=debug.getinfo(2),
-                        func=func, 
-                        args={a, b}
+                        traceback=debug.traceback(2),
+                        err_str=string.format("assert_almost equal failed: %s ~= %s +/-%s", a , b, epsilon), 
+                        debug_info=debug.getinfo(2),
+                        args={a, b},
+                        
                     }
                 end
             end,
@@ -58,8 +59,10 @@ TestingUnit = setmetatable({},
             assert_truthy = function(self, x)
                 if not x then
                     self:_assertion_failure{
-                        err=string.format("assert_truthy failed: '%s' is not truthy", x), 
-                        info=debug.getinfo(2),
+                        traceback=debug.traceback(2),
+                        err_str=string.format("assert_truthy failed: '%s' is not truthy", x), 
+                        debug_info=debug.getinfo(2),
+ 
                         args={x}
                     }
                 end
@@ -68,8 +71,9 @@ TestingUnit = setmetatable({},
             assert_true = function(self, x)
                 if x ~= true then
                     self:_assertion_failure{
-                        err=string.format("assert_true failed:'%s' ~= true", x), 
-                        info=debug.getinfo(2),
+                        traceback=debug.traceback(2), 
+                        err_str=string.format("assert_true failed:'%s' ~= true", x), 
+                        debug_info=debug.getinfo(2),
                         args={x}
                     }
                 end
@@ -78,8 +82,8 @@ TestingUnit = setmetatable({},
             assert_false = function(self, x)
                 if x ~= false then
                     self:_assertion_failure{
-                        err=string.format("assert_false failed: '%s' ~= false", x), 
-                        info=debug.getinfo(2),
+                        err_str=string.format("assert_false failed: '%s' ~= false", x), 
+                        debug_info=debug.getinfo(2),
                         args={x}
                     }
                 end
@@ -88,8 +92,8 @@ TestingUnit = setmetatable({},
             assert_match = function(self, s, exp)
                 if not string.match(s, exp) then
                     self:_assertion_failure{
-                        err=string.format("'%s' does not match '%s'", s, exp), 
-                        info=debug.getinfo(2),
+                        err_str=string.format("'%s' does not match '%s'", s, exp), 
+                        debug_info=debug.getinfo(2),
                         args={s, exp}
                     }
                 end
@@ -98,8 +102,8 @@ TestingUnit = setmetatable({},
             assert_in = function(self, haystack, needle)
                 if type(haystack) ~= 'string' and type(haystack) ~= 'table' then
                     self:_assertion_failure{
-                        err=string.format("type('%s') is not a container type",  haystack), 
-                        info=debug.getinfo(2),
+                        err_str=string.format("type('%s') is not a container type",  haystack), 
+                        debug_info=debug.getinfo(2),
                         args={needle=needle, haystack=haystack}
                     }
                     return
@@ -107,8 +111,8 @@ TestingUnit = setmetatable({},
                 if type(haystack) == 'string' then
                     if type(needle) ~= 'string' then
                         self:_assertion_failure{
-                            err=string.format("'%s' cannot be a substring of '%s'", needle, haystack), 
-                            info=debug.getinfo(2),
+                            err_str=string.format("'%s' cannot be a substring of '%s'", needle, haystack), 
+                            debug_info=debug.getinfo(2),
                             args={needle=needle, haystack=haystack}
                         }
                         return 
@@ -116,8 +120,8 @@ TestingUnit = setmetatable({},
                     local start, finish = string.find(haystack, needle)
                     if start == nil then
                         self:_assertion_failure{
-                            err=string.format("'%s' not found in '%s'", needle, haystack),  
-                            info=debug.getinfo(2),
+                            err_str=string.format("'%s' not found in '%s'", needle, haystack),  
+                            debug_info=debug.getinfo(2),
                             args={needle=needle, haystack=haystack}
                         }
                         return
@@ -132,8 +136,9 @@ TestingUnit = setmetatable({},
                     end
                     if not in_table then
                         self:_assertion_failure{
-                            err=string.format("'%s' not found in '%s'", needle, haystack),  
-                            info=debug.getinfo(2),
+                            traceback=debug.traceback(2),
+                            err_str=string.format("'%s' not found in '%s'", needle, haystack),  
+                            debug_info=debug.getinfo(2),
                             args={needle=needle, haystack=haystack}
                         }
                     end
@@ -143,8 +148,9 @@ TestingUnit = setmetatable({},
             assert_nil = function(self, x)
                 if x ~= nil then
                     self:_assertion_failure{
-                        err=string.format("'%s' not nil", x),  
-                        info=debug.getinfo(2),
+                        traceback=debug.traceback(2),
+                        err_str=string.format("'%s' not nil", x),  
+                        debug_info=debug.getinfo(2),
                         args={needle=needle, haystack=haystack}
                     }
                 end
@@ -160,6 +166,7 @@ TestingUnit = setmetatable({},
                         was_called = true
                     end
                 end
+                
                 local function getname(func)
                     --From PiL 'the debug library
                     local n = debug.getinfo(func)
@@ -173,20 +180,23 @@ TestingUnit = setmetatable({},
                         return lc
                     end
                 end
+                
                 debug.sethook(trace_hook, 'c')
-                    --[[pcall is required here because any 
-                    errors prevent reporting / cancelling the debug hook]]
-                    pcall(caller,args)
+                --[[pcall is required here because any 
+                errors prevent reporting / cancelling the debug hook]]
+                pcall(caller,args)
                 debug.sethook()
+                
                 if not was_called then
                     self:_assertion_failure{
-                        err=string.format(
+                        traceback=debug.traceback(2),
+                        err_str=string.format(
                             "assert_calls failure:'%s' not called by '%s with args(%s)'", 
                             getname(callee), 
                             getname(caller), 
                             table.concat(type(args) == 'table' and args or {args}, ', ')
                         ),  
-                        info=debug.getinfo(2),
+                        debug_info=debug.getinfo(2),
                         args={caller=caller, callee=callee, args=args}
                     }
                 end
@@ -201,7 +211,13 @@ TestingUnit = setmetatable({},
         return test_table
     end,
      __tostring = function(self)
-        return "TestingUnit dummy!"
+        local tests = {}
+        for k, v in pairs(self) do
+            if type(v) == 'function' and string.match(k, '^test.+') then
+               tests[#tests + 1] = k .. '()' 
+            end
+        end
+        return string.format("TestingUnit{%s}", table.concat(tests, ',\n'))
     end
 })
 
@@ -210,6 +226,8 @@ TestingUnit = setmetatable({},
 function find_test_files(dirs, depth, pattern)
     --[[discover all lua test scripts in the given directories and put their 
     filenames in the returned array.
+    This currently uses the posix `find` command, so we expect it on $PATH.
+    Sorry Win32... except I'm not.
     ]]
     local tests = {}
     
@@ -226,11 +244,14 @@ function find_test_files(dirs, depth, pattern)
         local function scandir(directory)
             local t = {}
             --This quoting is not security safe, but should prevent accidents
-            for filename in io.popen(string.format("find %s -maxdepth %s  %s -type f", 
-                string.format("%q", directory), 
-                depth, 
-                pattern)):lines() do
-                    t[#t + 1] = filename
+            for filename in io.popen(
+                string.format("find %s -maxdepth %s  %s -type f", 
+                    string.format("%q", directory), 
+                    depth, 
+                    pattern
+                )
+            ):lines() do
+                t[#t + 1] = filename
             end
             return t
         end
@@ -262,7 +283,7 @@ function find_test_files(dirs, depth, pattern)
     return tests
 end
 
-function runtests(all_test_files)
+function runtests(all_test_files, show_tracebacks, silence_output)
     --[[
     Given a table containing paths of testing scripts, load each one in turn
     and execute any TestingUnits instantiated into the global table by the script. 
@@ -284,6 +305,12 @@ function runtests(all_test_files)
     local errors = {}    
     local expected_failures = {}
     
+    local function report(...)
+        if not(silence_output) then
+            print(...)
+        end
+    end
+
     local function save_globals()
         --store the contents of the global table locally
         for k, v in pairs(_G) do
@@ -301,7 +328,7 @@ function runtests(all_test_files)
         end
     end
     
-    local function load_each_test_file_iter(files_list)
+    local function load_files_iter(files_list)
         --[[
         Given a list of files, load the test into the global environment and 
         return all discovered test tables. 
@@ -315,9 +342,11 @@ function runtests(all_test_files)
             index = index + 1
             if file == nil then return nil end
             local func, err = loadfile(file)
+            report(string.format("loading '%s'...", file))
             if func then
                 if not pcall(func)  then
-                    print(string.format("ERROR:failed to exec '%s'", file))
+                    report(string.format("ERROR:failed to exec '%s'", file))
+                    errors[#errors] = {file=file}
                     return {}
                 else
                     local all_test_units = {}
@@ -328,7 +357,7 @@ function runtests(all_test_files)
                     ]]
                     for k, v in pairs(_G) do
                         if type(v) == 'table' then
-                            if v['is_testing_unit'] == true then
+                            if v.is_testing_unit == true then
                                 all_test_units[#all_test_units +1] = v
                             end
                         end
@@ -336,14 +365,15 @@ function runtests(all_test_files)
                     return all_test_units
                 end
             else
-                print(string.format("ERROR:failed to load '%s'", file))
+                report(string.format("ERROR:failed to load '%s'", file))
+                n_test_errors = n_test_errors + 1
                 return {}
             end
         end
         return iter
     end
 
-    function get_fixtures_for_member_name(t, member_name)
+    function get_fixtures(t, member_name)
         if not t.fixtures[member_name] then return {{}} end
         return t.fixtures[member_name]
     end
@@ -360,8 +390,8 @@ function runtests(all_test_files)
         reference ``last_assertion`` as a nonlocal variable, and the test 
         table can call self:_assertion_failure()
         ]]
-        local function _assertion_failure(self, ...)
-            last_assertion = {...}
+        local function _assertion_failure(self, t)
+            last_assertion = t
         end
         t._assertion_failure = _assertion_failure
         
@@ -370,19 +400,19 @@ function runtests(all_test_files)
             if type(v) == 'function' or (type(v) == 'table' and getmetatable(v) ~= nil and type(getmetatable(v)['__call']) == 'function') then
                 local func_name, callable = k, v
                 if string.match(string.lower(func_name), '^test') then
-                    for _, fixture in ipairs(get_fixtures_for_member_name(t, func_name)) do
-                        --[[
-                            Expected failures are indicated by naming convention.
-                            rather than decorators or similar conventions used in other languges.
-                            The following member functions will be treated as expected failures:
-                                test_myfunction_expected_fail'
-                                'TestExpectedFailure'
-                                'test_myfunctionExpected_failREALLYUGLY'
-                            Basically any sane name beginning with 'test' having the 
-                            substrings, 'expected' and 'fail' following.
-                            See pattern below for details.
+                    for _, fixture in ipairs(get_fixtures(t, func_name)) do
+                    --[[
+                        Expected failures are indicated by naming convention.
+                        rather than decorators or similar conventions used in other languges.
+                        The following member functions will be treated as expected failures:
+                            test_myfunction_expected_fail'
+                            'TestExpectedFailure'
+                            'test_myfunctionExpected_failREALLYUGLY'
+                        Basically any sane name beginning with 'test' having the 
+                        substrings, 'expected' and 'fail' following.
+                        See pattern below for details.
                             
-                        ]]
+                    ]]
                         is_expected_failure = false
                         last_assertion = nil
                         if string.match(string.lower(func_name), '^test[%a%d_]*expected[%a%d_]*fail') then
@@ -404,28 +434,30 @@ function runtests(all_test_files)
                             end
                             n_tests_run = n_tests_run + 1
                             if not success then 
-                                errors[#errors +1] = {name=func_name, err=ret, args=fixture}
-                                break
+                                
+                                errors[#errors +1] = {name=func_name, err_str=ret, args=fixture}
                             end
                         if t.teardown then t:teardown(callable, fixture) end
                         
                         if is_expected_failure then
                             if not last_assertion then
                                 n_tests_failed = n_tests_failed + 1
-                                failures[#failures +1] = {
-                                    err=string.format("%s: did not fail as expected", func_name), 
-                                    info=debug.getinfo(callable),
-                                    args=#fixture > 0 and fixture or nil
+                                failures[#failures +1 ] = {
+                                    err_str=string.format("%s: did not fail as expected", func_name), 
+                                    debug_info=debug.getinfo(callable),
+                                    args=fixture,
+                                    func_name=func_name
                                 }
                             else
-                                n_tests_expected_failed = n_tests_expected_failed +1
+                                n_tests_expected_failed = n_tests_expected_failed + 1
                             end
                         else
                             if last_assertion then
+                                last_assertion.func_name = func_name
                                 n_tests_failed = n_tests_failed + 1
-                                failures[#failures +1] = last_assertion
+                                failures[#failures +1 ] = last_assertion
                             else
-                                 n_tests_passed = n_tests_passed +1
+                                n_tests_passed = n_tests_passed +1
                             end
                         end
                     end
@@ -437,7 +469,7 @@ function runtests(all_test_files)
     --actually run all the tests
     save_globals()
     start_time = os.time()
-        for t in load_each_test_file_iter(all_test_files) do
+        for t in load_files_iter(all_test_files) do
             if t then
                 for _, v in ipairs(t) do
                     run_test_unit(v)
@@ -447,38 +479,82 @@ function runtests(all_test_files)
         end
     stop_time = os.time()
     
-    local function _print_results()
-        for _, f in ipairs(failures) do
-            debug.debug()
-            print("================================")
-            print("FAILURE:")
-            for k, v in pairs(f[1]) do
-                print(k, v)
+    local function print_results()
+        
+        local function getname(func)
+            --From PiL 'the debug library
+            local n = debug.getinfo(func)
+            if n.what == "C" then
+                return n.name
             end
-            print("--------------------------------")
+            local lc = string.format("[%s]:%d", n.short_src, n.linedefined)
+            if n.what ~= "main" and n.namewhat ~= "" then
+                return string.format("%s, (%s)", lc, n.name)
+            else
+                return lc
+            end
         end
+        
+        local function format_args(args)
+            local t = {}
+            if args == nil then return '' end
+            for arg in ipairs(args) do t[#t + 1] = tostring(arg) end
+            return string.format('(%s)', table.concat(t, ', '))
+        end
+        
+        for _, f in ipairs(failures) do
+            report(string.rep("=", 70))
+            report(
+            string.format("FAILURE:%s%s\n%s",
+                f.func_name,
+                format_args(f.args),
+                getname(f.debug_info.func))
+            )
+            report(string.rep("-", 70))
+            report(f.err_str)
+            if show_tracebacks then report(string.format("Traceback:\n%s", f.traceback)) end
+            report()
+        end
+        
         for _, e in ipairs(errors) do
             n_test_errors = n_test_errors + 1
-            print("================================")
-            print("ERROR:execution failure")
+            report(string.rep("=", 70))
+            report("ERROR:execution failure:%s%s\n%s")
             for k, v in pairs(e) do
-                print(k, v)
+                report(k, v)
             end
-            print("--------------------------------")
+            report(string.rep("-", 70))
         end
     end
-    _print_results()
-    print(string.format([[Ran %s tests in %s seconds.
-        %s failures, %s expected failures, %s errors, %s passed]],
-        n_tests_run, 
-        os.difftime(stop_time, start_time), 
-        n_tests_failed, 
-        n_tests_expected_failed, 
-        n_test_errors,
-        n_tests_passed)
+    print_results()
+    report(
+        string.format([[Ran %s tests in %s seconds.
+            %s failures, %s expected failures, %s errors, %s passed]],
+            n_tests_run, 
+            os.difftime(stop_time, start_time), 
+            n_tests_failed, 
+            n_tests_expected_failed, 
+            n_test_errors,
+            n_tests_passed
+        )
     )
-    return n_tests_failed
+    return n_tests_failed + n_test_errors
 end
 
-
-return runtests(find_test_files({'../tests', }, 1, "*.lua"))
+if arg and arg[0]:match("[.%w]*$") == 'testingunit.lua' then 
+    --[[`arg` is set by the lua repl: 'lua_setglobal(L, "arg");', not by the Lua VM, 
+    so this will work in an embedded system that doesn't set `arg`. Fragile much?
+    ]]
+    local test_dirs = #arg > 0 and {} or {'.', 'tests'}
+    local depth = 1
+    for _, v in ipairs(arg) do 
+        if v:match('^--depth=[%d]$') ~= nil then
+            depth = tonumber(v:match('%d'))
+        else
+            test_dirs[#test_dirs + 1] = v 
+        end
+    end
+    return os.exit(runtests(find_test_files(test_dirs, depth, "*.lua")))
+else 
+    return TestingUnit 
+end
