@@ -541,7 +541,10 @@ function runtests(all_test_files, show_tracebacks, silence_output)
     return n_tests_failed + n_test_errors
 end
 
-if arg and arg[0]:match("[.%w]*$") == 'testingunit.lua' then 
+if arg then
+    script_name = arg[0]:match("[.%w]*$")
+end
+if script_name == 'testingunit' or script_name == 'testingunit.lua'then 
     --[[`arg` is set by the lua repl: 'lua_setglobal(L, "arg");', not by the Lua VM, 
     so this will work in an embedded system that doesn't set `arg`. Fragile much?
     ]]
