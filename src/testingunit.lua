@@ -111,7 +111,7 @@ TestingUnit = setmetatable({},
                 if type(haystack) == 'string' then
                     if type(needle) ~= 'string' then
                         self:_assertion_failure{
-                            err_str=string.format("'%s' cannot be a substring of '%s'", needle, haystack), 
+                            err_str=string.format("'%s' cannot be a substring of '%s'", tostring(needle), haystack), 
                             debug_info=debug.getinfo(2),
                             args={needle=needle, haystack=haystack}
                         }
@@ -496,9 +496,12 @@ function runtests(all_test_files, show_tracebacks, silence_output)
         end
         
         local function format_args(args)
+            
             local t = {}
             if args == nil then return '' end
-            for arg in ipairs(args) do t[#t + 1] = tostring(arg) end
+            print("args:",args)
+            for k, v in pairs(args)do print(k, v) end
+            for _, arg in ipairs(args) do t[#t + 1] = tostring(arg) end
             return string.format('(%s)', table.concat(t, ', '))
         end
         
