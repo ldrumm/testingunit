@@ -24,3 +24,7 @@
 generate_readme.lua
 pre_commit.sh
 testingunit-0.1-0.src.rock
+bin/
+lib/
+luarocks/
+share/
