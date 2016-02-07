@@ -20,7 +20,7 @@ TestingUnit = setmetatable({},
 
                 ]]
                 local args = args or {}
-                success, result = pcall(func, unpack(args))
+                local success, result = pcall(func, unpack(args))
                 --we don't want success as this is assert_raises()
                 if success then
                     self:_assertion_failure{
